@@ -1,0 +1,121 @@
+-- GUI Setup
+local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/rasyidzakhir-spec/Anjay/main/UILib.lua"))()
+local Window = Library:CreateWindow("DASH Masterpack V5")
+
+-- Global Toggle
+_G.AutoFarm = false
+
+-- Sea & Island Data
+local Islands = {
+    ["Sea 1"] = {
+        "Starter Island", "Jungle", "Pirate Village", "Desert", "Middle Town",
+        "Frozen Village", "Marine Fortress", "Skylands", "Prison", "Colosseum",
+        "Magma Village", "Underwater City", "Fountain City"
+    },
+    ["Sea 2"] = {
+        "Kingdom of Rose", "Green Zone", "Graveyard", "Snow Mountain",
+        "Hot and Cold", "Cursed Ship", "Ice Castle", "Forgotten Island"
+    },
+    ["Sea 3"] = {
+        "Port Town", "Hydra Island", "Great Tree", "Floating Turtle",
+        "Castle on the Sea", "Haunted Castle", "Sea of Treats"
+    }
+}
+
+local SelectedSea = "Sea 1"
+local SelectedIsland = nil
+
+-- Dropdown GUI
+Window:CreateDropdown("Select Sea", {"Sea 1", "Sea 2", "Sea 3"}, function(sea)
+    SelectedSea = sea
+end)
+
+Window:CreateDropdown("Select Island", Islands[SelectedSea], function(island)
+    SelectedIsland = island
+end)
+
+Window:CreateButton("Teleport to Island", function()
+    if SelectedIsland then
+        local island = workspace:FindFirstChild(SelectedIsland)
+        if island and island:FindFirstChild("SpawnPoint") then
+            game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame = island.SpawnPoint.CFrame + Vector3.new(0, 5, 0)
+        else
+            print("Island not found or missing SpawnPoint")
+        end
+    end
+end)
+
+-- AutoFarm Toggle
+Window:CreateToggle("AutoFarm", function(state)
+    _G.AutoFarm = state
+end)
+
+-- AutoFarm Logic
+spawn(function()
+    local player = game.Players.LocalPlayer
+
+    local function getLevel()
+        return player.Data.Level.Value
+    end
+
+    local function equipTool()
+        local tool = player.Backpack:FindFirstChildOfClass("Tool")
+        if tool then
+            player.Character.Humanoid:EquipTool(tool)
+        end
+    end
+
+    local function getMobByName(name)
+        for _, mob in pairs(workspace.Enemies:GetChildren()) do
+            if mob.Name == name and mob:FindFirstChild("HumanoidRootPart") and mob.Humanoid.Health > 0 then
+                return mob
+            end
+        end
+        return nil
+    end
+
+    local function teleportToMob(mob)
+        if mob and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+            player.Character.HumanoidRootPart.CFrame = mob.HumanoidRootPart.CFrame + Vector3.new(0, 5, 0)
+        end
+    end
+
+    local function startQuest(npcName, questButton)
+        local npc = workspace:FindFirstChild(npcName)
+        if npc and npc:FindFirstChild("Head") then
+            player.Character.HumanoidRootPart.CFrame = npc.Head.CFrame + Vector3.new(0, 3, 0)
+            wait(0.5)
+            fireclickdetector(npc.ClickDetector)
+            wait(0.5)
+            game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer("StartQuest", npcName, questButton)
+        end
+    end
+
+    while true do
+        if _G.AutoFarm then
+            pcall(function()
+                local level = getLevel()
+
+                if level >= 10 and level < 30 then
+                    startQuest("BanditQuestGiver", 1)
+                    equipTool()
+                    local mob = getMobByName("Bandit")
+                    teleportToMob(mob)
+
+                elseif level >= 700 and level < 850 then
+                    startQuest("SwanPirateQuestGiver", 1)
+                    equipTool()
+                    local mob = getMobByName("Swan Pirate")
+                    teleportToMob(mob)
+
+                elseif level >= 1800 then
+                    startQuest("DragonCrewQuestGiver", 1)
+                    equipTool()
+                    local mob = getMobByName("Dragon Crew Warrior")
+                    teleportToMob(mob)
+                end
+            end)
+        end
+        wait(1)
+    end
+end)
